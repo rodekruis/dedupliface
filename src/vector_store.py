@@ -1,5 +1,6 @@
 import copy
 import numpy as np
+import re
 from typing import List
 from azure.core.credentials import AzureKeyCredential
 from azure.core.exceptions import ResourceNotFoundError
@@ -29,14 +30,30 @@ class VectorStore:
     def __init__(
         self,
         store_path: str,
-        store_password: str = None,
-        store_id: str = "face_embeddings"
+        store_password: str,
+        store_id: str
     ):
-        self.store_id = store_id
+        self.store_id = self._set_store_id(store_id)
         self.store_password = store_password
         self.store_path = store_path
         self.index_client = self._set_index_client()
         self.client = self._set_client()
+    
+    def _set_store_id(self, store_id: str) -> str:
+        """
+        Ensure that vector store ID is valid:
+        * 2-128 characters, lowercase
+        * only letters, numbers and dashes ("-")
+        * first character must be a letter or number
+        * no consecutive dashes
+        * example: hia-faq-ukraine-en
+        """
+        store_id = re.sub(r'[^a-z0-9-]', '', store_id.lower())
+        store_id = re.sub(r'--', '', store_id)
+        if store_id[0] == "-" or len(store_id) == 1:
+            store_id = "k" + store_id
+        store_id = store_id[:128]
+        return store_id
         
     def _set_index_client(self):
         return SearchIndexClient(

@@ -67,11 +67,10 @@ trans = transforms.Compose([
 ])
 
 
-def _get_duplicate_face_ids(vector_store, kobo_client):
+def _get_duplicate_face_ids(vector_store, kobo_client, threshold):
     submissions = kobo_client.get_kobo_data_bulk()
     duplicate_face_ids = []
     for submission in submissions:
-        print(submission)
         face1_id = submission['_id']
         face1_vector = np.array(vector_store.client.get_document(face1_id)['content_vector'])
         # get top 3 similar faces
@@ -79,14 +78,14 @@ def _get_duplicate_face_ids(vector_store, kobo_client):
         for face in faces:
             face2_id = face['id']
             face2_vector = np.array(face['content_vector'])
-            if np.dot(face1_vector, face2_vector) > SIMILARITY_THRESHOLD:
+            if np.dot(face1_vector, face2_vector) > threshold:
                 duplicate_face_ids.append(face1_id)
                 duplicate_face_ids.append(face2_id)
     return list(set(duplicate_face_ids))
 
 
-def _update_kobo(vector_store, kobo_client, field, value):
-    duplicate_face_ids = _get_duplicate_face_ids(vector_store, kobo_client)
+def _update_kobo(vector_store, kobo_client, field, value, threshold):
+    duplicate_face_ids = _get_duplicate_face_ids(vector_store, kobo_client, threshold)
     try:
         kobo_client.update_kobo_data_bulk(
             duplicate_face_ids,
@@ -103,18 +102,15 @@ async def docs_redirect():
     return RedirectResponse(url='/docs')
 
 
-def required_kobo_headers(
-        koboasset: str = Header(),
-        kobotoken: str = Header()):
-    return koboasset, kobotoken
-
-class AddFacePayload(BaseModel):
-    picturefield: str = Field(..., description="""
-        Name of the kobo field containing the picture""")
+def add_face_headers(
+        koboasset: str = Header(description="ID of the Kobo form (asset)"),
+        kobotoken: str = Header(description="your Kobo API token"),
+        kobofield: str = Header(description="name of the Kobo field containing the picture")):
+    return koboasset, kobotoken, kobofield
 
 
 @app.post("/add-face")
-async def add_face(payload: AddFacePayload, request: Request, dependencies=Depends(required_kobo_headers)):
+async def add_face(request: Request, dependencies=Depends(add_face_headers)):
     """Extract face from kobo picture, encrypt, and add to vector store."""
     
     kobo_data = await request.json()
@@ -127,7 +123,7 @@ async def add_face(payload: AddFacePayload, request: Request, dependencies=Depen
         asset=request.headers['koboasset'],
         submission=kobo_data
     )
-    file = kobo_client.get_kobo_attachment(payload.picturefield)
+    file = kobo_client.get_kobo_attachment(request.headers['kobofield'])
     img = Image.open(BytesIO(file))
     t2_stop = perf_counter()
     logger.info(f"Elapsed time get kobo picture: {float(t2_stop - t2_start)} seconds")
@@ -147,7 +143,7 @@ async def add_face(payload: AddFacePayload, request: Request, dependencies=Depen
     vector_store = VectorStore(
         store_path=os.environ["VECTOR_STORE_ADDRESS"],
         store_password=os.environ["VECTOR_STORE_PASSWORD"],
-        store_id=request.headers['koboasset'].lower()
+        store_id=request.headers['koboasset']
     )
     vector_store.add_face(
         face_id=kobo_data['id'],
@@ -163,20 +159,30 @@ async def add_face(payload: AddFacePayload, request: Request, dependencies=Depen
 
 
 class DeduplicatePayload(BaseModel):
-    duplicatefield: str = Field(..., description="""
+    kobofield: str = Field(..., description="""
         Name of the field used to mark duplicates""")
-    duplicatevalue: str = Field(..., description="""
-        Value used to mark duplicates""")
+    kobovalue: str = Field(..., description="""
+        Value used to mark duplicates (e.g. 'duplicate')""")
+    threshold: float = Field(default=0.9, description="""
+            How confident you want the model to be
+            in order to mark two faces as duplicate,
+            on a scale from 0 to 1""")
+
+
+def deduplicate_headers(
+        koboasset: str = Header(description="ID of the Kobo form (asset)"),
+        kobotoken: str = Header(description="your Kobo API token")):
+    return koboasset, kobotoken
 
 
 @app.post("/find-duplicate-faces")
-async def find_duplicate_faces(payload: DeduplicatePayload, request: Request, background_tasks: BackgroundTasks, dependencies=Depends(required_kobo_headers)):
+async def find_duplicate_faces(payload: DeduplicatePayload, request: Request, background_tasks: BackgroundTasks, dependencies=Depends(deduplicate_headers)):
     """Find duplicate faces in vector store and update kobo accordingly."""
     
     vector_store = VectorStore(
         store_path=os.environ["VECTOR_STORE_ADDRESS"],
         store_password=os.environ["VECTOR_STORE_PASSWORD"],
-        store_id=request.headers['koboasset'].lower()
+        store_id=request.headers['koboasset']
     )
     kobo_client = KoboAPI(
         url="https://kobo.ifrc.org",
@@ -184,11 +190,18 @@ async def find_duplicate_faces(payload: DeduplicatePayload, request: Request, ba
         asset=request.headers['koboasset']
     )
     
-    background_tasks.add_task(_update_kobo, vector_store, kobo_client, payload.duplicatefield, payload.duplicatevalue)
+    background_tasks.add_task(
+        _update_kobo,
+        vector_store,
+        kobo_client,
+        payload.kobofield,
+        payload.kobovalue,
+        payload.threshold
+    )
 
     return JSONResponse(
             status_code=202,
-            content={"result": f"Duplicates are being checked and marked as '{payload.duplicatevalue}' in field '{payload.duplicatefield}'."}
+            content={"result": f"Duplicates are being checked and marked as '{payload.kobofield}' in field '{payload.kobovalue}'."}
         )
     
     
@@ -198,7 +211,7 @@ class Duplicates(BaseModel):
     
     
 @app.post("/get-duplicates-kobo")
-async def get_duplicates_kobo(payload: DeduplicatePayload, request: Request, dependencies=Depends(required_kobo_headers)):
+async def get_duplicates_kobo(payload: DeduplicatePayload, request: Request, dependencies=Depends(deduplicate_headers)):
     """Get IDs of duplicates from kobo."""
     
     kobo_client = KoboAPI(
@@ -207,7 +220,7 @@ async def get_duplicates_kobo(payload: DeduplicatePayload, request: Request, dep
         asset=request.headers['koboasset']
     )
     kobo_data = kobo_client.get_kobo_data_bulk()
-    duplicate_face_ids = [k['_id'] for k in kobo_data if k[payload.duplicatefield] == payload.duplicatevalue]
+    duplicate_face_ids = [k['_id'] for k in kobo_data if k[payload.kobofield] == payload.kobovalue]
     
     response = Duplicates(
         duplicates=duplicate_face_ids
