@@ -61,7 +61,7 @@ class KoboAPI:
         ).json()
         if 'successes' not in update_result.keys():
             raise RuntimeError("Kobo update failed.")
-        elif len(update_result['successes']) != len(submission_ids):
+        elif update_result['successes'] != len(submission_ids):
             raise RuntimeError(f"Kobo update failed for {update_result['failures']} submissions.")
     
     def get_kobo_data_bulk(self):

@@ -71,14 +71,17 @@ def _get_duplicate_face_ids(vector_store, kobo_client):
     submissions = kobo_client.get_kobo_data_bulk()
     duplicate_face_ids = []
     for submission in submissions:
-        face1_id = submission['id']
-        face1_vector = vector_store.client.get_document(face1_id)
+        print(submission)
+        face1_id = submission['_id']
+        face1_vector = np.array(vector_store.client.get_document(face1_id)['content_vector'])
         # get top 3 similar faces
         faces = vector_store.search_face(face1_vector, 3)
         for face in faces:
-            if face['@search.score'] > SIMILARITY_THRESHOLD:
+            face2_id = face['id']
+            face2_vector = np.array(face['content_vector'])
+            if np.dot(face1_vector, face2_vector) > SIMILARITY_THRESHOLD:
                 duplicate_face_ids.append(face1_id)
-                duplicate_face_ids.append(face['id'])
+                duplicate_face_ids.append(face2_id)
     return list(set(duplicate_face_ids))
 
 
@@ -135,7 +138,7 @@ async def add_face(payload: AddFacePayload, request: Request, dependencies=Depen
     x_ = face_img.permute(1, 2, 0).int().numpy()
     x_ = trans(x_)
     x_ = x_.unsqueeze(0).to('cpu')
-    face_vector = face_identifier(x_).to('cpu').detach().numpy()
+    face_vector = face_identifier(x_).to('cpu').detach().numpy().squeeze(0)
     t2_stop = perf_counter()
     logger.info(f"Elapsed time face detection and embedding: {float(t2_stop - t2_start)} seconds")
     
@@ -144,7 +147,7 @@ async def add_face(payload: AddFacePayload, request: Request, dependencies=Depen
     vector_store = VectorStore(
         store_path=os.environ["VECTOR_STORE_ADDRESS"],
         store_password=os.environ["VECTOR_STORE_PASSWORD"],
-        store_id=request.headers['koboasset']
+        store_id=request.headers['koboasset'].lower()
     )
     vector_store.add_face(
         face_id=kobo_data['id'],
@@ -173,7 +176,7 @@ async def find_duplicate_faces(payload: DeduplicatePayload, request: Request, ba
     vector_store = VectorStore(
         store_path=os.environ["VECTOR_STORE_ADDRESS"],
         store_password=os.environ["VECTOR_STORE_PASSWORD"],
-        store_id=request.headers['koboasset']
+        store_id=request.headers['koboasset'].lower()
     )
     kobo_client = KoboAPI(
         url="https://kobo.ifrc.org",
@@ -204,7 +207,7 @@ async def get_duplicates_kobo(payload: DeduplicatePayload, request: Request, dep
         asset=request.headers['koboasset']
     )
     kobo_data = kobo_client.get_kobo_data_bulk()
-    duplicate_face_ids = [k['id'] for k in kobo_data if k[payload.duplicatefield] == payload.duplicatevalue]
+    duplicate_face_ids = [k['_id'] for k in kobo_data if k[payload.duplicatefield] == payload.duplicatevalue]
     
     response = Duplicates(
         duplicates=duplicate_face_ids
