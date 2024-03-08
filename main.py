@@ -9,8 +9,8 @@ from fastapi import Depends, FastAPI, Request, HTTPException, Header, Background
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
-from app.vector_store import VectorStore
-from app.kobo_api_client import KoboAPI
+from src.vector_store import VectorStore
+from src.kobo_api_client import KoboAPI
 import os
 import logging
 import sys
