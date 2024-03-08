@@ -112,7 +112,7 @@ class AddFacePayload(BaseModel):
 
 @app.post("/add-face")
 async def add_face(payload: AddFacePayload, request: Request, dependencies=Depends(required_kobo_headers)):
-    """Extract face from kobo picture, encrypt, and add to database."""
+    """Extract face from kobo picture, encrypt, and add to vector store."""
     
     kobo_data = await request.json()
     
@@ -159,16 +159,16 @@ async def add_face(payload: AddFacePayload, request: Request, dependencies=Depen
     )
 
 
-class DeduplicateFacesPayload(BaseModel):
+class DeduplicatePayload(BaseModel):
     duplicatefield: str = Field(..., description="""
         Name of the field used to mark duplicates""")
     duplicatevalue: str = Field(..., description="""
         Value used to mark duplicates""")
 
 
-@app.post("/deduplicate-faces")
-async def deduplicate_faces(payload: DeduplicateFacesPayload, request: Request, background_tasks: BackgroundTasks, dependencies=Depends(required_kobo_headers)):
-    """Deduplicate faces in database and update kobo."""
+@app.post("/find-duplicate-faces")
+async def find_duplicate_faces(payload: DeduplicatePayload, request: Request, background_tasks: BackgroundTasks, dependencies=Depends(required_kobo_headers)):
+    """Find duplicate faces in vector store and update kobo accordingly."""
     
     vector_store = VectorStore(
         store_path=os.environ["VECTOR_STORE_ADDRESS"],
@@ -194,9 +194,9 @@ class Duplicates(BaseModel):
         List of IDs of submissions with duplicate faces.""")
     
     
-@app.post("/get-duplicate-faces")
-async def get_duplicate_faces(payload: DeduplicateFacesPayload, request: Request, dependencies=Depends(required_kobo_headers)):
-    """Get IDs of duplicates in kobo."""
+@app.post("/get-duplicates-kobo")
+async def get_duplicates_kobo(payload: DeduplicatePayload, request: Request, dependencies=Depends(required_kobo_headers)):
+    """Get IDs of duplicates from kobo."""
     
     kobo_client = KoboAPI(
         url="https://kobo.ifrc.org",
