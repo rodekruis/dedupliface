@@ -169,7 +169,7 @@ async def add_face(request: Request, dependencies=Depends(add_face_headers)):
         store_id=request.headers['koboasset']
     )
     vector_store.add_face(
-        face_id=kobo_data['id'],
+        face_id=kobo_data['_id'],
         face_vector=face_vector
     )
     t2_stop = perf_counter()
@@ -177,7 +177,7 @@ async def add_face(request: Request, dependencies=Depends(add_face_headers)):
     
     return JSONResponse(
         status_code=200,
-        content={"result": f"Added face of submission {kobo_data['id']} to vector store."}
+        content={"result": f"Added face of submission {kobo_data['_id']} to vector store."}
     )
 
 
@@ -238,7 +238,7 @@ def delete_headers(
     return koboasset
 
 
-@app.post("/delete-faces")
+@app.delete("/delete-faces")
 async def delete_faces(request: Request, dependencies=Depends(delete_headers)):
     """Delete faces from vector store."""
     

@@ -61,7 +61,7 @@ class VectorStore:
             AzureKeyCredential(self.store_password)
         )
         
-    def _create_azuresearch_index(self):
+    def _create_index(self):
         fields = [
             SimpleField(
                 name="id",
@@ -103,7 +103,7 @@ class VectorStore:
         """Sets the vector store client"""
         indexes = [index.name for index in self.index_client.list_indexes()]
         if self.store_id not in indexes:
-            self._create_azuresearch_index()
+            self._create_index()
         return SearchClient(
             self.store_path,
             index_name=self.store_id,
