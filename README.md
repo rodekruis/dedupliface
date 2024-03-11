@@ -1,19 +1,19 @@
-# dedupliface 👩🏽‍🦱👳🏻
+# dedupliface 👩🏿👩🏽‍🦱👳🏻
 
 Deduplicate [Kobo](https://www.kobotoolbox.org/) submissions using face pictures.
 
-### Terms of Service
-
-Use of dedupliface is permitted **only**:
-* for **humanitarian programs** involving the registration of people,
-* when **no official proof of identity is available** to people assisted,
-* to **prevent duplicate registrations**, whether caused by error or fraud,
-* with **human validation**, i.e. with one or more humanitarian worker(s) checking duplicates and deciding 
- inclusion/exclusion in/from the program,
-* in combination with **KoboToolbox**.
-
-Collection of face pictures and their use in dedupliface must be done in accordance with the [IFRC Data Protection Policy](https://www.ifrc.org/document/IFRC-Data-Protection-Policy).
-
+> [!NOTE]
+> ### Terms of Service
+> 
+> Use of dedupliface is permitted **only**:
+> * for **humanitarian programs** involving the registration of people,
+> * when **no official proof of identity is available** to people assisted,
+> * to **prevent duplicate registrations**, whether caused by error or fraud,
+> * with **human validation**, i.e. with one or more humanitarian worker(s) checking duplicates and deciding 
+>  inclusion/exclusion in/from the program,
+> * in combination with **KoboToolbox**.
+> 
+> Collection of face pictures and their use in dedupliface must be done in accordance with the [IFRC Data Protection Policy](https://www.ifrc.org/document/IFRC-Data-Protection-Policy).
 
 ### Usage
 
