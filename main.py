@@ -27,7 +27,6 @@ logging.getLogger("azure").setLevel(logging.WARNING)
 logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
 from dotenv import load_dotenv
 load_dotenv()
-SIMILARITY_THRESHOLD = 0.9
 
 # load environment variables
 if "PORT" not in os.environ.keys():
@@ -68,13 +67,13 @@ trans = transforms.Compose([
 
 
 def _get_duplicate_face_ids(vector_store, kobo_client, threshold):
+    """ Get IDs of duplicate faces in vector store. """
     submissions = kobo_client.get_kobo_data_bulk()
     duplicate_face_ids = []
     for submission in submissions:
         face1_id = str(submission['_id'])
         face1_vector = np.array(vector_store.client.get_document(face1_id)['content_vector'])
-        # get top 3 similar faces
-        faces = vector_store.search_face(face1_vector, 3)
+        faces = vector_store.search_face(face1_vector, 4)[1:]  # get top 3 similar faces
         for face in faces:
             face2_id = str(face['id'])
             face2_vector = np.array(face['content_vector'])
@@ -84,7 +83,8 @@ def _get_duplicate_face_ids(vector_store, kobo_client, threshold):
     return list(set(duplicate_face_ids))
 
 
-def _update_kobo(vector_store, kobo_client, field, value, threshold):
+def _find_duplicates_update_kobo(vector_store, kobo_client, field, value, threshold):
+    """ Update Kobo data with duplicate face IDs. """
     duplicate_face_ids = _get_duplicate_face_ids(vector_store, kobo_client, threshold)
     try:
         kobo_client.update_kobo_data_bulk(
@@ -138,28 +138,28 @@ async def add_face(request: Request, dependencies=Depends(add_face_headers)):
     t2_stop = perf_counter()
     logger.info(f"Elapsed time face detection and embedding: {float(t2_stop - t2_start)} seconds")
     
-    # # Encrypt face vector
-    #
-    # # Get rotation angle
-    # hashed_asset = abs(hash(request.headers['koboasset'])) % (10 ** 8)
-    # rotation_angle = 180. * hashed_asset / (10 ** len(str(hashed_asset)))
-    #
-    # # Get rotation axis
-    # dummy_rotation_axis = "1," + "0," * 511
-    # dummy_rotation_axis = dummy_rotation_axis[:-1]  # remove last comma
-    # rotation_axis = np.array([int(i) for i in list(os.getenv("ROTATION_AXIS", dummy_rotation_axis).split(","))])
-    #
-    # # Get two orthonormal vectors that span the plane of rotation (perpendicular to the rotation axis)
-    # n1 = np.random.rand(512)
-    # n1 -= np.dot(n1, rotation_axis) * rotation_axis
-    # n1 /= np.linalg.norm(n1)
-    # n2 = np.cross(rotation_axis, n1)
-    # n2 /= np.linalg.norm(n2)
-    #
-    # # Rotate face vector
-    # rotation_matrix = (np.identity(512) + (np.outer(n2, n1) - np.outer(n1, n2)) * np.sin(rotation_angle) +
-    #                    (np.outer(n1, n1) + np.outer(n2, n2)) * (np.cos(rotation_angle) - 1.))
-    # face_vector = np.dot(rotation_matrix, face_vector)
+    # Encrypt face vector
+
+    # Get rotation angle
+    hashed_asset = abs(hash(request.headers['koboasset'])) % (10 ** 8)
+    rotation_angle = 180. * hashed_asset / (10 ** len(str(hashed_asset)))
+
+    # Get rotation axis
+    dummy_rotation_axis = "1," + "0," * 511
+    dummy_rotation_axis = dummy_rotation_axis[:-1]  # remove last comma
+    rotation_axis = np.array([int(i) for i in list(os.getenv("ROTATION_AXIS", dummy_rotation_axis).split(","))])
+
+    # Get two orthonormal vectors that span the plane of rotation (perpendicular to the rotation axis)
+    n1 = np.random.rand(512)
+    n1 -= np.dot(n1, rotation_axis) * rotation_axis
+    n1 /= np.linalg.norm(n1)
+    n2 = np.cross(rotation_axis, n1)
+    n2 /= np.linalg.norm(n2)
+
+    # Rotate face vector
+    rotation_matrix = (np.identity(512) + (np.outer(n2, n1) - np.outer(n1, n2)) * np.sin(rotation_angle) +
+                       (np.outer(n1, n1) + np.outer(n2, n2)) * (np.cos(rotation_angle) - 1.))
+    face_vector = np.dot(rotation_matrix, face_vector)
     
     # Store face in vector store
     t2_start = perf_counter()
@@ -186,7 +186,7 @@ class DeduplicatePayload(BaseModel):
         Name of the field used to mark duplicates""")
     kobovalue: str = Field(..., description="""
         Value used to mark duplicates (e.g. 'duplicate')""")
-    threshold: float = Field(default=0.9, description="""
+    threshold: float = Field(default=0.7, description="""
             How confident you want the model to be
             in order to mark two faces as duplicate,
             on a scale from 0 to 1""")
@@ -214,7 +214,7 @@ async def find_duplicate_faces(payload: DeduplicatePayload, request: Request, ba
     )
     
     background_tasks.add_task(
-        _update_kobo,
+        _find_duplicates_update_kobo,
         vector_store,
         kobo_client,
         payload.kobofield,
