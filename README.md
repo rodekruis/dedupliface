@@ -1,16 +1,27 @@
 # dedupliface
 
-Deduplicate kobo submissions using face pictures.
+Deduplicate [Kobo](https://www.kobotoolbox.org/) submissions using face pictures.
+
+### Terms of Service
+
+Use of dedupliface is permitted **only**:
+* for **humanitarian programs** involving the registration of people
+* when **no official proof of identity is available** to people assisted
+* to **prevent duplicate registrations**, whether caused by error or fraud
+* with **human validation**, i.e. with one or more humanitarian worker(s) checking duplicates and deciding 
+ inclusion/exclusion in/from the program
+* in combination with **KoboToolbox**
+
+Collection of face pictures and their use in dedupliface must be done in accordance with the [IFRC Data Protection Policy](https://media.ifrc.org/ifrc/what-we-do/data-protection-policy/).
 
 ### Description
 
-Synopsis: a [dockerized](https://www.docker.com/) [python](https://www.python.org/) API that checks if face pictures in kobo are duplicate. 
+Synopsis: a [dockerized](https://www.docker.com/) [python](https://www.python.org/) API that checks if face pictures in Kobo are duplicate. 
 
 Based on [facenet-pytorch](https://github.com/timesler/facenet-pytorch). Uses [Poetry](https://python-poetry.org/) for dependency management. 
-Encrypts face embeddings differently for each Kobo form, so that face pictures are impossible to reconstruct from 
-these.
+Encrypts face embeddings so that face pictures cannot be reconstructed.
 
-### API Usage
+### Usage
 
 The high-level workflow is:
 1. Create a Kobo form with a question of type `Photo`, with which you collect face pictures.
