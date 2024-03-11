@@ -13,14 +13,22 @@ Based on [facenet-pytorch](https://github.com/timesler/facenet-pytorch). Uses [P
 
 See [the docs](https://510-121-dedupliface.azurewebsites.net/docs).
 
-### Run locally
+### Configuration
 
-```
+```sh
 cp example.env .env
 ```
-fill in secrets in `.env`
-```
-pip install poetry
-poetry install --no-root
+
+Edit the provided [ENV-variables](./example.env) accordingly.
+
+### Run locally
+
+with Uvicorn (Python web server):
+```sh
+poetry install
 uvicorn main:app --reload
+```
+with Docker:
+```sh
+docker compose up --detach
 ```
