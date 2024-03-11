@@ -144,16 +144,10 @@ async def add_face(request: Request, dependencies=Depends(add_face_headers)):
     hashed_asset = abs(hash(request.headers['koboasset'])) % (10 ** 8)
     rotation_angle = 180. * hashed_asset / (10 ** len(str(hashed_asset)))
 
-    # Get rotation axis
-    dummy_rotation_axis = "1," + "0," * 511
-    dummy_rotation_axis = dummy_rotation_axis[:-1]  # remove last comma
-    rotation_axis = np.array([int(i) for i in list(os.getenv("ROTATION_AXIS", dummy_rotation_axis).split(","))])
-
-    # Get two orthonormal vectors that span the plane of rotation (perpendicular to the rotation axis)
-    n1 = np.random.rand(512)
-    n1 -= np.dot(n1, rotation_axis) * rotation_axis
+    # Get two vectors defining the rotation plane
+    n1 = np.array([int(i) for i in list(os.getenv("ROTATION_VECTOR").split(","))]).astype(np.float32)
     n1 /= np.linalg.norm(n1)
-    n2 = np.cross(rotation_axis, n1)
+    n2 = np.where(n1 == 0., 1., 0.)
     n2 /= np.linalg.norm(n2)
 
     # Rotate face vector
