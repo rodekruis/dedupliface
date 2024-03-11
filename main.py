@@ -138,6 +138,29 @@ async def add_face(request: Request, dependencies=Depends(add_face_headers)):
     t2_stop = perf_counter()
     logger.info(f"Elapsed time face detection and embedding: {float(t2_stop - t2_start)} seconds")
     
+    # # Encrypt face vector
+    #
+    # # Get rotation angle
+    # hashed_asset = abs(hash(request.headers['koboasset'])) % (10 ** 8)
+    # rotation_angle = 180. * hashed_asset / (10 ** len(str(hashed_asset)))
+    #
+    # # Get rotation axis
+    # dummy_rotation_axis = "1," + "0," * 511
+    # dummy_rotation_axis = dummy_rotation_axis[:-1]  # remove last comma
+    # rotation_axis = np.array([int(i) for i in list(os.getenv("ROTATION_AXIS", dummy_rotation_axis).split(","))])
+    #
+    # # Get two orthonormal vectors that span the plane of rotation (perpendicular to the rotation axis)
+    # n1 = np.random.rand(512)
+    # n1 -= np.dot(n1, rotation_axis) * rotation_axis
+    # n1 /= np.linalg.norm(n1)
+    # n2 = np.cross(rotation_axis, n1)
+    # n2 /= np.linalg.norm(n2)
+    #
+    # # Rotate face vector
+    # rotation_matrix = (np.identity(512) + (np.outer(n2, n1) - np.outer(n1, n2)) * np.sin(rotation_angle) +
+    #                    (np.outer(n1, n1) + np.outer(n2, n2)) * (np.cos(rotation_angle) - 1.))
+    # face_vector = np.dot(rotation_matrix, face_vector)
+    
     # Store face in vector store
     t2_start = perf_counter()
     vector_store = VectorStore(
@@ -208,6 +231,27 @@ async def find_duplicate_faces(payload: DeduplicatePayload, request: Request, ba
 class Duplicates(BaseModel):
     duplicates: list = Field(..., description="""
         List of IDs of submissions with duplicate faces.""")
+
+
+def delete_headers(
+        koboasset: str = Header(description="ID of the Kobo form (asset)")):
+    return koboasset
+
+
+@app.post("/delete-faces")
+async def delete_faces(request: Request, dependencies=Depends(delete_headers)):
+    """Delete faces from vector store."""
+    
+    vector_store = VectorStore(
+        store_path=os.environ["VECTOR_STORE_ADDRESS"],
+        store_password=os.environ["VECTOR_STORE_PASSWORD"],
+        store_id=request.headers['koboasset']
+    )
+    vector_store.index_client.delete_index(request.headers['koboasset'])
+    return JSONResponse(
+        status_code=200,
+        content={"result": f"Deleted all faces from vector store."}
+    )
     
     
 @app.post("/get-duplicates-kobo")
