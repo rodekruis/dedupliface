@@ -113,7 +113,7 @@ class VectorStore:
     def add_face(self, face_id: str, face_vector: np.array):
         """Add new face embedding to the vector store"""
         doc = {
-            "id": face_id,
+            "id": str(face_id),
             "content_vector": face_vector.tolist()
         }
         self.client.upload_documents(documents=[doc])

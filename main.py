@@ -71,12 +71,12 @@ def _get_duplicate_face_ids(vector_store, kobo_client, threshold):
     submissions = kobo_client.get_kobo_data_bulk()
     duplicate_face_ids = []
     for submission in submissions:
-        face1_id = submission['_id']
+        face1_id = str(submission['_id'])
         face1_vector = np.array(vector_store.client.get_document(face1_id)['content_vector'])
         # get top 3 similar faces
         faces = vector_store.search_face(face1_vector, 3)
         for face in faces:
-            face2_id = face['id']
+            face2_id = str(face['id'])
             face2_vector = np.array(face['content_vector'])
             if np.dot(face1_vector, face2_vector) > threshold:
                 duplicate_face_ids.append(face1_id)
