@@ -5,30 +5,24 @@ Deduplicate [Kobo](https://www.kobotoolbox.org/) submissions using face pictures
 ### Terms of Service
 
 Use of dedupliface is permitted **only**:
-* for **humanitarian programs** involving the registration of people
-* when **no official proof of identity is available** to people assisted
-* to **prevent duplicate registrations**, whether caused by error or fraud
+* for **humanitarian programs** involving the registration of people,
+* when **no official proof of identity is available** to people assisted,
+* to **prevent duplicate registrations**, whether caused by error or fraud,
 * with **human validation**, i.e. with one or more humanitarian worker(s) checking duplicates and deciding 
- inclusion/exclusion in/from the program
-* in combination with **KoboToolbox**
+ inclusion/exclusion in/from the program,
+* in combination with **KoboToolbox**.
 
 Collection of face pictures and their use in dedupliface must be done in accordance with the [IFRC Data Protection Policy](https://www.ifrc.org/document/IFRC-Data-Protection-Policy).
 
-### Description
-
-Synopsis: a [dockerized](https://www.docker.com/) [python](https://www.python.org/) API that checks if face pictures in Kobo are duplicate. 
-
-Based on [facenet-pytorch](https://github.com/timesler/facenet-pytorch). Uses [Poetry](https://python-poetry.org/) for dependency management. 
-Encrypts face embeddings so that face pictures cannot be reconstructed.
 
 ### Usage
 
 The high-level workflow is:
 1. Create a Kobo form with a question of type `Photo`, with which you collect face pictures.
-2. Connect the Kobo form with dedupliface using the [Kobo REST Services](https://support.kobotoolbox.org/rest_services.html).
+2. Connect the Kobo form with dedupliface using [Kobo REST Services](https://support.kobotoolbox.org/rest_services.html).
 3. When a new submission is uploaded to Kobo, an encrypted numerical representation of the face, a.k.a. an _embedding_, 
  is saved in a dedicated _vector database_. The encryption key is unique to the Kobo form.
-4. Dedupliface checks which faces are duplicates and stores the information in the Kobo database.
+4. Dedupliface checks which faces in the vector database are duplicate and stores the information in the Kobo database.
 6. Delete the encrypted embeddings from the vector database, for extra safety.
 
 For specifics, see [the docs](https://dedupliface.azurewebsites.net/docs).
@@ -59,8 +53,15 @@ through the [Swagger UI](https://dedupliface.azurewebsites.net/docs) or whatever
    * Specify `kobofield` and `kobovalue` in the request body, where `kobofield` is the name of the question used for marking duplicates and `kobovalue` is the value that marks a duplicate (e.g. `yes`)
 3. Your duplicate submissions will now be marked as such in KoboToolbox.
 
-### Configuration
+### Technical Specifications
 
+Synopsis: a [dockerized](https://www.docker.com/) [python](https://www.python.org/) API that checks if face pictures in Kobo are duplicate. 
+
+Based on [FastAPI](https://fastapi.tiangolo.com/) and [facenet-pytorch](https://github.com/timesler/facenet-pytorch). 
+Stores and queries face embeddings with a dedicate vector database, [Azure AI Search](https://azure.microsoft.com/en-us/products/ai-services/ai-search). 
+Uses [Poetry](https://python-poetry.org/) for dependency management.
+
+Encrypts face embeddings with two keys, one global and one unique to each Kobo form.
 
 
 ### Run locally
