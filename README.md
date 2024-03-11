@@ -12,7 +12,7 @@ Use of dedupliface is permitted **only**:
  inclusion/exclusion in/from the program
 * in combination with **KoboToolbox**
 
-Collection of face pictures and their use in dedupliface must be done in accordance with the [IFRC Data Protection Policy](https://media.ifrc.org/ifrc/what-we-do/data-protection-policy/).
+Collection of face pictures and their use in dedupliface must be done in accordance with the [IFRC Data Protection Policy](https://www.ifrc.org/document/IFRC-Data-Protection-Policy).
 
 ### Description
 
