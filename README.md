@@ -6,29 +6,67 @@ Deduplicate kobo submissions using face pictures.
 
 Synopsis: a [dockerized](https://www.docker.com/) [python](https://www.python.org/) API that checks if face pictures in kobo are duplicate. 
 
-Based on [facenet-pytorch](https://github.com/timesler/facenet-pytorch). Uses [Poetry](https://python-poetry.org/) for dependency management.
-
+Based on [facenet-pytorch](https://github.com/timesler/facenet-pytorch). Uses [Poetry](https://python-poetry.org/) for dependency management. 
+Encrypts face embeddings differently for each Kobo form, so that face pictures are impossible to reconstruct from 
+these.
 
 ### API Usage
 
-See [the docs](https://510-121-dedupliface.azurewebsites.net/docs).
+The high-level workflow is:
+1. Create a Kobo form with a question of type `Photo`, with which you collect face pictures.
+2. Connect the Kobo form with dedupliface using the [Kobo REST Services](https://support.kobotoolbox.org/rest_services.html).
+3. When a new submission is uploaded to Kobo, an encrypted numerical representation of the face, a.k.a. an _embedding_, 
+ is saved in a dedicated _vector database_. The encryption key is unique to the Kobo form.
+4. Dedupliface checks which faces are duplicates and stores the information in the Kobo database.
+6. Delete the encrypted embeddings from the vector database, for extra safety.
+
+For specifics, see [the docs](https://dedupliface.azurewebsites.net/docs).
+
+#### Connect Kobo to dedupliface:
+
+1. Define which question in the Kobo form is used to get face pictures.
+2. Define which question in the Kobo form is used to mark duplicates (can be hidden in the form itself).
+3. [Register a new Kobo REST Service](https://support.kobotoolbox.org/rest_services.html) and give it a descriptive name.
+4. Insert as `Endpoint URL`
+   ```
+   https://dedupliface.azurewebsites.net/add-face
+   ```
+6. Add under `Custom HTTP Headers`:
+   * In `Name` add `koboasset` and in `Value` the ID of your Kobo form (_asset_)
+   * In `Name` add `kobotoken` and in `Value` your Kobo API _token_ (see [how to get one](https://support.kobotoolbox.org/api.html#getting-your-api-token))
+   * In `Name` add `kobofield` and in `Value` the name of the question used for face pictures
+
+#### Get duplicates:
+
+1. Upload all submissions to Kobo
+2. Make a POST request to
+```
+https://dedupliface.azurewebsites.net/find-duplicate-faces
+```
+through the [Swagger UI](https://dedupliface.azurewebsites.net/docs) or whatever tool you prefer. 
+   * Specify `koboasset` and `kobotoken` in the headers, as before
+   * Specify `kobofield` and `kobovalue` in the request body, where `kobofield` is the name of the question used for marking duplicates and `kobovalue` is the value that marks a duplicate (e.g. `yes`)
+3. Your duplicate submissions will now be marked as such in KoboToolbox.
 
 ### Configuration
 
+
+
+### Run locally
+
+Configure local environment variables with
 ```sh
 cp example.env .env
 ```
 
-Edit the provided [ENV-variables](./example.env) accordingly.
+and edit the provided [ENV-variables](./example.env) accordingly.
 
-### Run locally
-
-with Uvicorn (Python web server):
+Then, with Uvicorn (Python web server):
 ```sh
 poetry install
 uvicorn main:app --reload
 ```
-with Docker:
+or with Docker:
 ```sh
 docker compose up --detach
 ```
