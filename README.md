@@ -1,4 +1,4 @@
-# dedupliface
+# dedupliface 👩🏽‍🦱👳🏻
 
 Deduplicate [Kobo](https://www.kobotoolbox.org/) submissions using face pictures.
 
