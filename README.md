@@ -73,12 +73,12 @@ cp example.env .env
 
 and edit the provided [ENV-variables](./example.env) accordingly.
 
-Then, with Uvicorn (Python web server):
+Then, with [Uvicorn](https://www.uvicorn.org/):
 ```sh
 poetry install
 uvicorn main:app --reload
 ```
-or with Docker:
+or with [Docker](https://www.docker.com/):
 ```sh
 docker compose up --detach
 ```
