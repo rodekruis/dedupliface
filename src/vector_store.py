@@ -109,6 +109,14 @@ class VectorStore:
             index_name=self.store_id,
             credential=AzureKeyCredential(self.store_password)
         )
+    
+    def delete_index(self):
+        """Delete the vector store index"""
+        indexes = [index.name for index in self.index_client.list_indexes()]
+        if self.store_id not in indexes:
+            raise KeyError(f"Index '{self.store_id}' does not exist.")
+        else:
+            self.index_client.delete_index(self.store_id)
         
     def add_face(self, face_id: str, face_vector: np.array):
         """Add new face embedding to the vector store"""

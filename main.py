@@ -241,7 +241,10 @@ async def delete_faces(request: Request, dependencies=Depends(delete_headers)):
         store_password=os.environ["VECTOR_STORE_PASSWORD"],
         store_id=request.headers['koboasset']
     )
-    vector_store.index_client.delete_index(request.headers['koboasset'])
+    try:
+        vector_store.index_client.delete_index()
+    except KeyError:
+        raise HTTPException(404, detail=f"No faces found for Kobo asset {request.headers['koboasset']}.")
     return JSONResponse(
         status_code=200,
         content={"result": f"Deleted all faces from vector store."}
