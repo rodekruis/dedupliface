@@ -35,7 +35,7 @@ else:
     port = os.environ["PORT"]
     
 description = """
-Deduplicate kobo submissions using face pictures 👩🏽‍🦱👳🏻
+Deduplicate kobo submissions using face pictures 👩🏿👩🏽‍🦱👳🏻
 
 Built with love by [NLRC 510](https://www.510.global/). See
 [the project on GitHub](https://github.com/rodekruis/dedupliface) or [contact us](mailto:support@510.global).
