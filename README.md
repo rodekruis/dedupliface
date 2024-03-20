@@ -23,8 +23,6 @@ The high-level workflow is:
 4. Dedupliface checks which faces in the vector database are duplicate and stores the information in the Kobo database.
 6. Delete the encrypted embeddings from the vector database, for extra safety.
 
-For specifics, see [the docs](https://dedupliface.azurewebsites.net/docs).
-
 #### Connect Kobo to dedupliface:
 
 1. Define which question in the Kobo form is used to get face pictures.
@@ -64,12 +62,11 @@ Encrypts face embeddings with two keys, one global and one unique to each Kobo f
 
 ### Run locally
 
-Configure local environment variables with
+Create the `.env` file for local environment variables
 ```sh
 cp example.env .env
 ```
-
-and edit the provided [ENV-variables](./example.env) accordingly.
+and edit them accordingly.
 
 Then, with [Uvicorn](https://www.uvicorn.org/):
 ```sh
@@ -80,3 +77,11 @@ or with [Docker](https://www.docker.com/):
 ```sh
 docker compose up --detach
 ```
+
+### Deploy in Azure
+
+1. Create an App Service Plan [Premium v3 P2V3](https://learn.microsoft.com/en-us/azure/app-service/app-service-configure-premium-tier) or above.
+2. Create an App Service Web App with the following settings:
+   * `Publish`: `Docker Container`
+   * `Operating System`: `Linux`
+   * `Region`: the same as the App Service Plan
